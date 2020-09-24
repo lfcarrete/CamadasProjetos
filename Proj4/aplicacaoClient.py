@@ -25,16 +25,32 @@ import time
 serialName = "COM3"                  # Windows(variacao de)
 vivo = False
 
-def criaPacote(payload, i):
+def criaPacote(payload, i, tipo_mensagem, Handshake, numTotalPacotes):
     pacote = bytes([])
 
     header = [bytes([0])]*10
     
-    header[0] = bytes([len(payload)])
- 
-    header[1] = bytes([i])
+    header[0] = bytes([tipo_mensagem]) #tipo de mensagem
+    header[1] = bytes([123]) #id do sensor
+    header[2] = bytes([56]) #id do servidor
+    header[3] = bytes([numTotalPacotes]) #numero total de pacotes do arquivo
+    header[4] = bytes([i]) #Numero do pacote enviado
+    
+    if Handshake:
+        header[5] = bytes([111]) # id do arquivo
+    else:
+        header[5] = bytes([len(payload)]) #Len do pacote
+        
+    header[6] = bytes([i-1]) #Pacote para recomeco quando erro no envio
+    header[7] = bytes([i-1]) #Ultimo pacote recebido com sucesso
+    header[8] = bytes([0]) #CRC
+    header[9] = bytes([0]) #CRC
+
+
 
     eop = [bytes([255])]*4
+    eop[1] = bytes([170])
+    eop[3] = bytes([170])
 
     listPayload = []
 
@@ -43,19 +59,19 @@ def criaPacote(payload, i):
     
     for i in header + listPayload + eop:
         pacote += i
-
     return pacote
     
-def estaVivo(com):
-    txBuffer = criaPacote(bytes([255]),2)
+def estaVivo(com, numTotalPacotes):
 
+    txBuffer = criaPacote(bytes([0]), 1, 1, True, numTotalPacotes) 
+    
     com.sendData(txBuffer)
     
     
     header, nH = com.getData(10, True)
     
     if len(header) != 0:
-        rxBuffer, nRx = com.getData(header[0], True)
+        rxBuffer, nRx = com.getData(header[5], True)
         eop, nE = com.getData(4, True)
         return True
     else: 
@@ -109,13 +125,27 @@ def main():
         
 
         #Mensagem teste (está vivo?)
+        msg = bytes([255]*2578)
 
-        vivo = estaVivo(com)
+        parsed = parsePacote(msg)
+        pacotePronto = []
+
+        numPacote = 1
+        for i in parsed:
+            pacotePronto.append(criaPacote(i, numPacote, 3, False, len(parsed))) 
+            numPacote += 1
+
+        lenEnvio = len(pacotePronto)
+
+        pacotePronto[lenEnvio-1] = pacotePronto[lenEnvio-1][:-4]
+        pacotePronto[lenEnvio-1] += str.encode("LAST")    
+
+        vivo = estaVivo(com, len(pacotePronto))
         if vivo == False:
             retry = input("Servidor inativo. Tentar novamente? S/N: ")
             print(retry)
             if retry == "S" or retry =="s":
-                vivo = estaVivo(com)
+                vivo = estaVivo(com, len(pacotePronto))
                 if vivo == False:
                     print("-------------------------")
                     print("Comunicação encerrada")
@@ -126,7 +156,6 @@ def main():
             print("####Handshake Estabelecido####")
 
         if vivo:
-            msg = bytes([255]*2578)
 
             #imageR = ("./imgs/computer.png")
 
@@ -134,27 +163,12 @@ def main():
             
             print("Tamanho de envio: {}".format(len(msg)))
 
-            parsed = parsePacote(msg)
-            pacotePronto = []
-
-            numPacote = 0
-        
-            for i in parsed:
-            
-                pacotePronto.append(criaPacote(i, numPacote))
-                numPacote += 1
-
-            lenEnvio = len(pacotePronto)
-
-            pacotePronto[lenEnvio-1] = pacotePronto[lenEnvio-1][:-4]
-            pacotePronto[lenEnvio-1] += str.encode("LAST")
-
             for i in pacotePronto:
-                print("Pacote ID:{} Enviado".format(i[1]))
+                print("Pacote ID:{} Enviado".format(i[4]))
 
                 com.sendData(i)
                 header, nR = com.getData(10, False)
-                pacote, nP = com.getData(header[0], False)
+                pacote, nP = com.getData(header[5], False)
                 eop, nE = com.getData(4, False)
             
         
