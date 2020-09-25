@@ -151,7 +151,7 @@ def main():
 
             for i in pacotePronto:
                 print("Pacote ID:{} Enviado".format(i[1]))
-
+                print(i[0])
                 com.sendData(i)
                 header, nR = com.getData(10, False)
                 pacote, nP = com.getData(header[0], False)

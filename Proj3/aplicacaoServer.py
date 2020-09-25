@@ -54,6 +54,7 @@ def main():
     
         # Ativa comunicacao. Inicia os threads e a comunicação seiral 
         com.enable()
+        com.rx.clearBuffer
         
 
         print("Conexão Estabelecida")
@@ -84,10 +85,11 @@ def main():
         while eop != str.encode("LAST"):
             
             header, nH = com.getData(10, False)
-            pacote, nP = com.getData(header[1], False)
+            pacote, nP = com.getData(header[0], False)
             eop, nE = com.getData(4, False)
             print("lenPacote {}".format(nP))
             print("ID do pacote {}".format(cont))
+            print(header)
             
             if header[1] == cont and header[0] == nP:
                 resposta = criaPacote(bytes([50]), 0)

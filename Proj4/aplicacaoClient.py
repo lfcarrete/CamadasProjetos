@@ -22,7 +22,7 @@ import time
 #use uma das 3 opcoes para atribuir à variável a porta usada
 #serialName = "/dev/ttyACM0"           # Ubuntu (variacao de)
 #serialName = "/dev/tty.usbmodem1411" # Mac    (variacao de)
-serialName = "COM3"                  # Windows(variacao de)
+serialName = "COM4"                  # Windows(variacao de)
 vivo = False
 
 def criaPacote(payload, i, tipo_mensagem, Handshake, numTotalPacotes):
@@ -64,15 +64,19 @@ def criaPacote(payload, i, tipo_mensagem, Handshake, numTotalPacotes):
 def estaVivo(com, numTotalPacotes):
 
     txBuffer = criaPacote(bytes([0]), 1, 1, True, numTotalPacotes) 
-    
     com.sendData(txBuffer)
+
+    i = 0
+    nH = 0
     
+    while i <= 5 and nH == 0: 
+        header, nH = com.getData(10)
+        i += 0.5
+        
     
-    header, nH = com.getData(10, True)
-    
-    if len(header) != 0:
-        rxBuffer, nRx = com.getData(header[5], True)
-        eop, nE = com.getData(4, True)
+    if len(header) != 0 and header[0] == 2:
+        rxBuffer, nRx = com.getData(header[5])
+        eop, nE = com.getData(4)
         return True
     else: 
         return False
@@ -108,13 +112,14 @@ def parsePacote(payload):
 
 def main():
     try:
+       
         #declaramos um objeto do tipo enlace com o nome "com". Essa é a camada inferior à aplicação. Observe que um parametro
         #para declarar esse objeto é o nome da porta.
         com = enlace(serialName)
-    
+
         # Ativa comunicacao. Inicia os threads e a comunicação seiral 
         com.enable()
-        com.rx.clearBuffer()
+        
 
     
         #Se chegamos até aqui, a comunicação foi aberta com sucesso. Faça um print para informar.
@@ -137,8 +142,6 @@ def main():
 
         lenEnvio = len(pacotePronto)
 
-        pacotePronto[lenEnvio-1] = pacotePronto[lenEnvio-1][:-4]
-        pacotePronto[lenEnvio-1] += str.encode("LAST")    
 
         vivo = estaVivo(com, len(pacotePronto))
         if vivo == False:
@@ -160,16 +163,26 @@ def main():
             #imageR = ("./imgs/computer.png")
 
             #msg = open(imageR, "rb").read()
-            
+            print("Qnt de pacotes a serem enviados {}\n".format(lenEnvio))
             print("Tamanho de envio: {}".format(len(msg)))
 
             for i in pacotePronto:
                 print("Pacote ID:{} Enviado".format(i[4]))
-
+                timer = 0
                 com.sendData(i)
-                header, nR = com.getData(10, False)
-                pacote, nP = com.getData(header[5], False)
-                eop, nE = com.getData(4, False)
+
+                nR = 0
+                header, nH = com.getData(0)
+                while nR == 0:
+                    header, nR = com.getData(10)
+                pacote, nP = com.getData(header[5])           
+                eop, nE = com.getData(4)
+                
+                    
+                print(pacote)
+                if header[0] == 5:
+                    print("Timeout")
+                    com.disable
             
         
         

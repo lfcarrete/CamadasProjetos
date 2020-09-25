@@ -22,7 +22,7 @@ import time
 #use uma das 3 opcoes para atribuir à variável a porta usada
 #serialName = "/dev/ttyACM0"           # Ubuntu (variacao de)
 #serialName = "/dev/tty.usbmodem1411" # Mac    (variacao de)
-serialName = "COM4"                  # Windows(variacao de)
+serialName = "COM3"                  # Windows(variacao de)
 
 def criaPacote(payload, i, tipo_mensagem):
     pacote = bytes([])
@@ -76,41 +76,63 @@ def main():
         #Veja o que faz a funcao do enlaceRX  getBufferLen
       
         #acesso aos bytes recebidos
+        
         print("###Buscando Header###")
-        header, nRx = com.getData(10, False)
-        pacote, lenPacote = com.getData(1, False)
-        eop, lenEop= com.getData(4, False)
+        
+        
+        header, nH = com.getData(0)
+        while len(header)==0:
+            header, nH = com.getData(10)
+            
+        
+        pacote, lenPacote = com.getData(1)
+        eop, lenEop= com.getData(4)
+        
+        print(pacote)
 
-
-        handshake = criaPacote(str.encode("vivo"),1,2)
-        print(handshake)
+        handshake = criaPacote(bytes([0]),1,2)
         print("Pacote handshake {}".format(handshake))
         com.sendData(handshake)
         print("-"*30)
+        print("{} pacotes a serem resgatados\n".format(header[3]))
 
         pacoteFinal = bytes([])
-        
+
         cont = 1
-        while eop != str.encode("LAST"):
-            
-            header, nH = com.getData(10, False)
-            pacote, nP = com.getData(header[5], False)
-            eop, nE = com.getData(4, False)
+        numPacotes = 1
+
+        
+
+        while numPacotes <= header[3]:
+            resposta = criaPacote(bytes([0]), cont, 4)
+            timer = 0
+
+            nH = 0
+            header, nH = com.getData(0)
+            while nH == 0:
+                header, nH = com.getData(10)         
+            pacote, nP = com.getData(header[5])
+            eop, nE = com.getData(4)
+
+           
             print("lenPacote {}".format(nP))
-            print("ID do pacote {}".format(cont))
-            
+            print("ID do pacote {}".format(header[4]))
+                   
             if header[4] == cont and header[5] == nP:
-                resposta = criaPacote(bytes([0]), cont, 4)
+                print("Envia Resposta")
                 com.sendData(resposta)
             else:
                 if header[4] != cont:
                     print("Pacote fora de ordem")
                 if header[5] != nP:
-                    print("Tamanho real do pacote diferente do informado")
-
+                    
+                   print("Tamanho real do pacote diferente do informado")
+                  
             print("* "*20)
             cont += 1
+            numPacotes += 1
             pacoteFinal += pacote
+
 
         print(len(pacoteFinal))
 
