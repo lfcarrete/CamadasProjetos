@@ -177,8 +177,8 @@ def main():
                 header, nR = com.getData(10)  
         
                 
-                timer1 += 0.5
-                timer2 += 0.5
+                timer1 += 1
+                timer2 += 1
 
             
                 
@@ -190,24 +190,27 @@ def main():
                     
                     com.sendData(pacotePronto[cont])
                     print("Pacote ID:{} Enviado".format(pacotePronto[cont][4]))
-
+                    
                     cont += 1
                     timer1 = 0
                     timer2 = 0
                     
                 else:
-                    if timer1 > 5:
+                    if timer1 > 4:
                         com.sendData(pacotePronto[cont]) 
                         print("-----------------REENVIO------------------")
                         timer1 = 0
-                    if timer2 > 20:
+                    if timer2 > 19:
                         com.sendData(criaPacote(bytes([0]), 1, 5,False, 0))
                         print("-----------------Timeout--------------------")
-                        com.disable()
+                        break
+
                     elif nR != 0 and header[0] == 6:
+                        pacote, nP = com.getData(header[5])           
+                        eop, nE = com.getData(4)
                         print("-----------------Pacote com erro---------------")
                         cont -= 1
-                        com.sendData(pacotePronto[cont]) 
+                        #com.sendData(pacotePronto[cont]) 
                         timer1 = 0
                         timer2 = 0
 

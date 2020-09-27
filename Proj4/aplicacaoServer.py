@@ -115,23 +115,29 @@ def main():
             contTotal = header[3]
 
             while cont <= contTotal and ocioso == False:
-                header, nH = com.getData(0)
-                
+                timer1 += 1
+                timer2 += 1
                 header, nH = com.getData(10)
                 
-                if nH != 0:
-                    pacote, nP = com.getData(header[5])
-                    eop, nE = com.getData(4)
-                    print("lenPacote {}".format(nP))
-                    print("ID do pacote {}".format(header[4]))
                 
-                if header[0] == 3: 
-                    print("Pacote OK")
-                    resposta = criaPacote(bytes([0]), 1, 4)
-                    print("Envia Resposta t4")
-                    com.sendData(resposta)
-                    cont += 1
-                    timer1 = 0
+                if nH != 0 and header[0] == 3: 
+                    if cont == header[4]:
+                        pacote, nP = com.getData(header[5])
+                        eop, nE = com.getData(4)
+                        print("lenPacote {}".format(nP))
+                        print("ID do pacote {}".format(header[4]))
+                        print("Pacote OK")
+                        pacoteFinal += pacote
+                        resposta = criaPacote(bytes([0]), 1, 4)
+                        print("***Envia Resposta t4***")
+                        com.sendData(resposta)
+                        cont += 1
+                        timer1 = 0
+                    else:
+                        resposta = criaPacote(bytes([0]), 1, 6)
+                        cont = header[6]
+                        print("Envia Resposta t6")
+                        com.sendData(resposta)
 
                 else:
                     time.sleep(1)
@@ -151,15 +157,13 @@ def main():
                             timer1 = 0
                 
 
-                if header[0] == 5:
+                if nH != 0 and header[0] == 5:
                     print("Timeout")
                     com.disable()
             
                     
                 print("* "*20)
-                timer1 += 0.5
-                timer2 += 0.5
-                pacoteFinal += pacote
+            
             
             if cont-1 == contTotal:
                 print("SUCESSO!")
