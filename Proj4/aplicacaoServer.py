@@ -112,15 +112,17 @@ def main():
             timer1 = 0 #SET TIMER 1
             timer2 = 0 #SET TIMER 2
             
+            contTotal = header[3]
 
-            while cont <= header[3] and ocioso == False:
+            while cont <= contTotal and ocioso == False:
                 
                 header, nH = com.getData(10)
-                pacote, nP = com.getData(header[5])
-                eop, nE = com.getData(4)
-
-                print("lenPacote {}".format(nP))
-                print("ID do pacote {}".format(header[4]))
+                
+                if nH != 0:
+                    pacote, nP = com.getData(header[5])
+                    eop, nE = com.getData(4)
+                    print("lenPacote {}".format(nP))
+                    print("ID do pacote {}".format(header[4]))
                 
                 if header[0] == 3: 
                     print("Pacote OK")
@@ -158,7 +160,7 @@ def main():
                 timer2 += 0.5
                 pacoteFinal += pacote
             
-            if cont-1 == header[3]:
+            if cont-1 == contTotal:
                 print("SUCESSO!")
                 print("Len Pacote Final --> {}".format(len(pacoteFinal)))
             else: 

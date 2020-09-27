@@ -74,7 +74,7 @@ def estaVivo(com, numTotalPacotes):
         
         
 
-    if header[0] == 2:
+    if nH != 0 and header[0] == 2:
         rxBuffer, nRx = com.getData(header[5])
         eop, nE = com.getData(4)
         return True
@@ -173,35 +173,39 @@ def main():
                 
                 com.sendData(pacotePronto[cont])
 
-                header, nR = com.getData(10)            
-                pacote, nP = com.getData(header[5])           
-                eop, nE = com.getData(4)
+                header, nR = com.getData(10)  
+        
                 
                 timer1 += 0.5
                 timer2 += 0.5
 
-                if header[0] == 4:
-                    print("----------------Pacote chegou OK!-----------------")
-                    cont += 1
-                    timer1 = 0
-                    timer2 = 0
-                else:
-                    if timer1 > 5:
-                        com.sendData(pacotePronto[cont]) 
-                        print("-----------------REENVIO------------------")
-                        timer1 = 0
-                    if timer2 > 20:
-                        com.sendData(criaPacote(bytes([0]), 1, 5,False, 0))
-                        print("-----------------Timeout--------------------")
-                        com.disable()
-                    elif len(header) != 0 and header[0] == 6:
-                        print("-----------------Pacote com erro---------------")
-                        cont -= 1
-                        com.sendData(pacotePronto[cont]) 
+                if nR != 0:
+                    pacote, nP = com.getData(header[5])           
+                    eop, nE = com.getData(4)
+
+                    if header[0] == 4:
+                        print("----------------Pacote chegou OK!-----------------")
+                        cont += 1
                         timer1 = 0
                         timer2 = 0
+                    
+                    else:
+                        if timer1 > 5:
+                            com.sendData(pacotePronto[cont]) 
+                            print("-----------------REENVIO------------------")
+                            timer1 = 0
+                        if timer2 > 20:
+                            com.sendData(criaPacote(bytes([0]), 1, 5,False, 0))
+                            print("-----------------Timeout--------------------")
+                            com.disable()
+                        elif header[0] == 6:
+                            print("-----------------Pacote com erro---------------")
+                            cont -= 1
+                            com.sendData(pacotePronto[cont]) 
+                            timer1 = 0
+                            timer2 = 0
 
-                
+                print("* "*20)
                 
                  
     
