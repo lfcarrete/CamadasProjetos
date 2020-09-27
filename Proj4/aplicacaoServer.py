@@ -83,11 +83,10 @@ def main():
         header, nH = com.getData(0)
         while len(header)==0:
             header, nH = com.getData(10)
-            
+
         
         pacote, lenPacote = com.getData(1)
         eop, lenEop= com.getData(4)
-        
         print(pacote)
 
         handshake = criaPacote(bytes([0]),1,2)
@@ -114,6 +113,9 @@ def main():
             pacote, nP = com.getData(header[5])
             eop, nE = com.getData(4)
 
+            if header[0] == 5:
+                print("Timeout")
+                com.disable()
            
             print("lenPacote {}".format(nP))
             print("ID do pacote {}".format(header[4]))
@@ -133,8 +135,8 @@ def main():
             numPacotes += 1
             pacoteFinal += pacote
 
-
-        print(len(pacoteFinal))
+        print("SUCESSO!")
+        print("Len Pacote Final --> {}".format(len(pacoteFinal)))
 
             
 

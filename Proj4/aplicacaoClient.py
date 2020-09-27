@@ -64,16 +64,17 @@ def criaPacote(payload, i, tipo_mensagem, Handshake, numTotalPacotes):
 def estaVivo(com, numTotalPacotes):
 
     txBuffer = criaPacote(bytes([0]), 1, 1, True, numTotalPacotes) 
+    
     com.sendData(txBuffer)
 
-    i = 0
+    temp = 0
     nH = 0
-    
-    while i <= 5 and nH == 0: 
+    while temp < 4 and nH == 0:
         header, nH = com.getData(10)
-        i += 0.5
+        temp += 0.5
         
-    
+        
+
     if len(header) != 0 and header[0] == 2:
         rxBuffer, nRx = com.getData(header[5])
         eop, nE = com.getData(4)
@@ -130,7 +131,7 @@ def main():
         
 
         #Mensagem teste (está vivo?)
-        msg = bytes([255]*2578)
+        msg = bytes([255]*572)
 
         parsed = parsePacote(msg)
         pacotePronto = []
@@ -141,7 +142,6 @@ def main():
             numPacote += 1
 
         lenEnvio = len(pacotePronto)
-
 
         vivo = estaVivo(com, len(pacotePronto))
         if vivo == False:
@@ -165,27 +165,50 @@ def main():
             #msg = open(imageR, "rb").read()
             print("Qnt de pacotes a serem enviados {}\n".format(lenEnvio))
             print("Tamanho de envio: {}".format(len(msg)))
-
-            for i in pacotePronto:
-                print("Pacote ID:{} Enviado".format(i[4]))
+            cont = 0
+            while cont < len(pacotePronto):
+                print("Pacote ID:{} Enviado".format(pacotePronto[cont][4]))
                 timer = 0
-                com.sendData(i)
+                com.sendData(pacotePronto[cont])
 
                 nR = 0
+                timer1 = 0
+                timer2 = 0
                 header, nH = com.getData(0)
-                while nR == 0:
+                
+                while nR == 0 and timer1 < 4:
                     header, nR = com.getData(10)
+                    timer1 += 0.5
+                    timer2 += 0.5
+
+
+                if nR == 0:
+                    com.sendData(pacotePronto[cont])                                              
+                    print("REENVIO")   #Reenvio --> Timer1 > 5                                          
+                                                                                 
+                    while nR == 0 and timer2 < 19:  #Timer2                          
+                        header, nR = com.getData(10)                             
+                        timer2 += 0.5                                            
+                    if nR == 0:  #Timer2 > 20
+                        com.sendData(criaPacote(bytes([0]), 1, 5,False, 0))
+                        print("Timeout")
+
+                    
+
                 pacote, nP = com.getData(header[5])           
                 eop, nE = com.getData(4)
-                
                     
-                print(pacote)
-                if header[0] == 5:
-                    print("Timeout")
+                if header[0] == 4:
+                    print("----------------Pacote chegou OK!-----------------")
+                    cont += 1 #Prox pacote
+                elif header[0] == 5:
+                    print("--------------Timeout--------------------")
                     com.disable
-            
+                elif header[0] == 6: #Confirma mensagem tipo 6
+                    print("--------------PACOTE COM ERRO-----------------")
+                    #Corrigir pacote --------------------
         
-        
+                 
     
         # Encerra comunicação
         print("-------------------------")
