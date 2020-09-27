@@ -59,21 +59,21 @@ def handshake(com):
    
     header, nH = com.getData(10)
         
-    if len(header) != 0:
-        print(header[2])
-        if header[2] != 56:
-            print("NAO EH PRA MIM")
-        elif header[2] == 56:
+    if len(header) != 0 and header[0] == 1:
+        if header[2] == 56:
             print("PRONTO PARA RECEBER")
             ocioso = False
             pacote, lenPacote = com.getData(1)
             eop, lenEop= com.getData(4)
             print("-"*30)
             print("{} pacotes a serem resgatados\n".format(header[3]))
+        else:
+            print("NAO EH PRA MIM")
     return header
     
 
 def main():
+    global ocioso
     try:
         #declaramos um objeto do tipo enlace com o nome "com". Essa é a camada inferior à aplicação. Observe que um parametro
         #para declarar esse objeto é o nome da porta.
@@ -100,52 +100,69 @@ def main():
         while ocioso:
             header = handshake(com)
             time.sleep(1)
-        pacoteHandshake = criaPacote(bytes([0]),1,2)
-        print("Pacote handshake {}".format(pacoteHandshake))
-        com.sendData(pacoteHandshake)
+        if ocioso == False:
+            pacoteHandshake = criaPacote(bytes([0]),1,2)
+            print("Pacote handshake {}".format(pacoteHandshake))
+            com.sendData(pacoteHandshake)
 
-        pacoteFinal = bytes([])
+            pacoteFinal = bytes([])
 
-        cont = 1
-        numPacotes = 1
+            cont = 1
+            
+            timer1 = 0 #SET TIMER 1
+            timer2 = 0 #SET TIMER 2
+            
 
-        
+            while cont <= header[3] and ocioso == False:
+                
+                header, nH = com.getData(10)
+                pacote, nP = com.getData(header[5])
+                eop, nE = com.getData(4)
 
-        while numPacotes <= header[3]:
-            resposta = criaPacote(bytes([0]), cont, 4)
-            timer = 0
+                print("lenPacote {}".format(nP))
+                print("ID do pacote {}".format(header[4]))
+                
+                if header[0] == 3: 
+                    print("Pacote OK")
+                    resposta = criaPacote(bytes([0]), 1, 4)
+                    print("Envia Resposta t4")
+                    com.sendData(resposta)
+                    cont += 1
+                    timer1 = 0
 
-            nH = 0
-            header, nH = com.getData(0)
-            while nH == 0:
-                header, nH = com.getData(10)         
-            pacote, nP = com.getData(header[5])
-            eop, nE = com.getData(4)
+                else:
+                    time.sleep(1)
+                    if timer2 > 20:
+                        ocioso = True
+                        resposta = criaPacote(bytes([0]), 1, 5)
+                        print("OCIOSO")
+                        print("Envia Resposta t5")
+                        com.sendData(resposta)
+                        com.disable()
 
-            if header[0] == 5:
-                print("Timeout")
-                com.disable()
-           
-            print("lenPacote {}".format(nP))
-            print("ID do pacote {}".format(header[4]))
-                   
-            if header[4] == cont and header[5] == nP:
-                print("Envia Resposta")
-                com.sendData(resposta)
-            else:
-                if header[4] != cont:
-                    print("Pacote fora de ordem")
-                if header[5] != nP:
+                    else:
+                        if timer1 > 2:
+                            resposta = criaPacote(bytes([0]), 1, 4)
+                            print("Envia Resposta t4")
+                            com.sendData(resposta)
+                            timer1 = 0
+                
+
+                if header[0] == 5:
+                    print("Timeout")
+                    com.disable()
+            
                     
-                   print("Tamanho real do pacote diferente do informado")
-                  
-            print("* "*20)
-            cont += 1
-            numPacotes += 1
-            pacoteFinal += pacote
-
-        print("SUCESSO!")
-        print("Len Pacote Final --> {}".format(len(pacoteFinal)))
+                print("* "*20)
+                timer1 += 0.5
+                timer2 += 0.5
+                pacoteFinal += pacote
+            
+            if cont-1 == header[3]:
+                print("SUCESSO!")
+                print("Len Pacote Final --> {}".format(len(pacoteFinal)))
+            else: 
+                print("ALGUM ERRO OCORREU")
 
             
 
