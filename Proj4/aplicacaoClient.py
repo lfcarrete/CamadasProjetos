@@ -64,7 +64,6 @@ def criaPacote(payload, i, tipo_mensagem, Handshake, numTotalPacotes):
 def estaVivo(com, numTotalPacotes):
 
     txBuffer = criaPacote(bytes([0]), 1, 1, True, numTotalPacotes) 
-    
     com.sendData(txBuffer)
 
     temp = 0

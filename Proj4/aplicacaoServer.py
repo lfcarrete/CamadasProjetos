@@ -23,7 +23,7 @@ import time
 #serialName = "/dev/ttyACM0"           # Ubuntu (variacao de)
 #serialName = "/dev/tty.usbmodem1411" # Mac    (variacao de)
 serialName = "COM3"                  # Windows(variacao de)
-
+ocioso = True
 def criaPacote(payload, i, tipo_mensagem):
     pacote = bytes([])
 
@@ -54,7 +54,24 @@ def criaPacote(payload, i, tipo_mensagem):
     return pacote
 
 
-
+def handshake(com):
+    global ocioso
+   
+    header, nH = com.getData(10)
+        
+    if len(header) != 0:
+        print(header[2])
+        if header[2] != 56:
+            print("NAO EH PRA MIM")
+        elif header[2] == 56:
+            print("PRONTO PARA RECEBER")
+            ocioso = False
+            pacote, lenPacote = com.getData(1)
+            eop, lenEop= com.getData(4)
+            print("-"*30)
+            print("{} pacotes a serem resgatados\n".format(header[3]))
+    return header
+    
 
 def main():
     try:
@@ -79,21 +96,13 @@ def main():
         
         print("###Buscando Header###")
         
-        
-        header, nH = com.getData(0)
-        while len(header)==0:
-            header, nH = com.getData(10)
-
-        
-        pacote, lenPacote = com.getData(1)
-        eop, lenEop= com.getData(4)
-        print(pacote)
-
-        handshake = criaPacote(bytes([0]),1,2)
-        print("Pacote handshake {}".format(handshake))
-        com.sendData(handshake)
-        print("-"*30)
-        print("{} pacotes a serem resgatados\n".format(header[3]))
+        #INICIO DO HANDSHAKE 
+        while ocioso:
+            header = handshake(com)
+            time.sleep(1)
+        pacoteHandshake = criaPacote(bytes([0]),1,2)
+        print("Pacote handshake {}".format(pacoteHandshake))
+        com.sendData(pacoteHandshake)
 
         pacoteFinal = bytes([])
 
