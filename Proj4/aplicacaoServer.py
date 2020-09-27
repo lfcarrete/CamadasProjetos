@@ -115,6 +115,7 @@ def main():
             contTotal = header[3]
 
             while cont <= contTotal and ocioso == False:
+                header, nH = com.getData(0)
                 
                 header, nH = com.getData(10)
                 

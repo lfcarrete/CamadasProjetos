@@ -164,14 +164,15 @@ def main():
             #msg = open(imageR, "rb").read()
             print("Qnt de pacotes a serem enviados {}\n".format(lenEnvio))
             print("Tamanho de envio: {}".format(len(msg)))
-            cont = 0
+            cont = 1
+
             timer1 = 0 #SET TIMER 1
             timer2 = 0 #SET TIMER 2
-            header, nH = com.getData(0)
-            while cont < len(pacotePronto):
-                print("Pacote ID:{} Enviado".format(pacotePronto[cont][4]))
-                
-                com.sendData(pacotePronto[cont])
+
+            com.sendData(pacotePronto[0])
+            print("Pacote ID:{} Enviado".format(pacotePronto[0][4]))
+
+            while cont < len(pacotePronto):                
 
                 header, nR = com.getData(10)  
         
@@ -179,31 +180,36 @@ def main():
                 timer1 += 0.5
                 timer2 += 0.5
 
-                if nR != 0:
+            
+                
+
+                if nR != 0 and header[0] == 4:
                     pacote, nP = com.getData(header[5])           
                     eop, nE = com.getData(4)
+                    print("----------------Pacote chegou OK!-----------------")
+                    
+                    com.sendData(pacotePronto[cont])
+                    print("Pacote ID:{} Enviado".format(pacotePronto[cont][4]))
 
-                    if header[0] == 4:
-                        print("----------------Pacote chegou OK!-----------------")
-                        cont += 1
+                    cont += 1
+                    timer1 = 0
+                    timer2 = 0
+                    
+                else:
+                    if timer1 > 5:
+                        com.sendData(pacotePronto[cont]) 
+                        print("-----------------REENVIO------------------")
+                        timer1 = 0
+                    if timer2 > 20:
+                        com.sendData(criaPacote(bytes([0]), 1, 5,False, 0))
+                        print("-----------------Timeout--------------------")
+                        com.disable()
+                    elif nR != 0 and header[0] == 6:
+                        print("-----------------Pacote com erro---------------")
+                        cont -= 1
+                        com.sendData(pacotePronto[cont]) 
                         timer1 = 0
                         timer2 = 0
-                    
-                    else:
-                        if timer1 > 5:
-                            com.sendData(pacotePronto[cont]) 
-                            print("-----------------REENVIO------------------")
-                            timer1 = 0
-                        if timer2 > 20:
-                            com.sendData(criaPacote(bytes([0]), 1, 5,False, 0))
-                            print("-----------------Timeout--------------------")
-                            com.disable()
-                        elif header[0] == 6:
-                            print("-----------------Pacote com erro---------------")
-                            cont -= 1
-                            com.sendData(pacotePronto[cont]) 
-                            timer1 = 0
-                            timer2 = 0
 
                 print("* "*20)
                 
