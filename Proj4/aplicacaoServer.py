@@ -115,8 +115,8 @@ def main():
             contTotal = header[3]
 
             while cont <= contTotal and ocioso == False:
-                timer1 += 1
-                timer2 += 1
+                timer1 += 0.5
+                timer2 += 0.5
                 header, nH = com.getData(10)
                 
                 
@@ -134,7 +134,7 @@ def main():
                         cont += 1
                         timer1 = 0
                     
-                    elif cont != header[4]:
+                    elif cont != header[4] and nP == 0:
                         print("CHEGOU {}".format(header[4]))
                         resposta = criaPacote(bytes([0]), 1, 6)
                         print("Envia Resposta t6")
@@ -154,7 +154,7 @@ def main():
                     else:
                         if timer1 > 2:
                             resposta = criaPacote(bytes([0]), 1, 4)
-                            print("Envia Resposta t4")
+                            print("Envia Resposta t4 do pacote {}".format(cont))
                             com.sendData(resposta)
                             timer1 = 0
                 
