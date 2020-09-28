@@ -133,11 +133,13 @@ def main():
                         com.sendData(resposta)
                         cont += 1
                         timer1 = 0
-                    else:
+                    
+                    elif cont != header[4]:
+                        print("CHEGOU {}".format(header[4]))
                         resposta = criaPacote(bytes([0]), 1, 6)
-                        cont = header[6]
                         print("Envia Resposta t6")
                         com.sendData(resposta)
+                        cont = header[6]
 
                 else:
                     time.sleep(1)
@@ -163,7 +165,7 @@ def main():
             
                     
                 print("* "*20)
-            
+                print(cont)
             
             if cont-1 == contTotal:
                 print("SUCESSO!")

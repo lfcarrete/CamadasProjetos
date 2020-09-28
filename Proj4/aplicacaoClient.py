@@ -197,9 +197,11 @@ def main():
                     
                 else:
                     if timer1 > 4:
+                        cont -= 1
                         com.sendData(pacotePronto[cont]) 
                         print("-----------------REENVIO------------------")
                         timer1 = 0
+                        cont += 1
                     if timer2 > 19:
                         com.sendData(criaPacote(bytes([0]), 1, 5,False, 0))
                         print("-----------------Timeout--------------------")
@@ -210,12 +212,12 @@ def main():
                         eop, nE = com.getData(4)
                         print("-----------------Pacote com erro---------------")
                         cont -= 1
-                        #com.sendData(pacotePronto[cont]) 
+                        com.sendData(pacotePronto[cont]) 
                         timer1 = 0
                         timer2 = 0
 
                 print("* "*20)
-                
+                print(cont)
                  
     
         # Encerra comunicação
