@@ -183,23 +183,32 @@ def main():
             
                 
 
-                if nR != 0 and header[0] == 4:
+                if nR != 0:
                     pacote, nP = com.getData(header[5])           
                     eop, nE = com.getData(4)
-                    print("----------------Pacote chegou OK!-----------------")
                     
-                    com.sendData(pacotePronto[cont])
-                    print("Pacote ID:{} Enviado".format(pacotePronto[cont][4]))
-                    
-                    cont += 1
-                    timer1 = 0
-                    timer2 = 0
+                    if  header[0] == 4 and cont == header[4]:
+                        print("----------------Pacote chegou OK!-----------------")
+                        
+                        com.sendData(pacotePronto[cont])
+                        print("Pacote ID:{} Enviado".format(pacotePronto[cont][4]))
+                        
+                        cont += 1
+                        timer1 = 0
+                        timer2 = 0
+                    elif header[0] == 6:
+                        cont = pacotePronto[cont][6]
+                        print("-----------------Pacote com erro---------------")
+                        cont = pacotePronto[cont][6]
+                        com.sendData(pacotePronto[cont]) 
+                        timer1 = 0
+                        timer2 = 0
                     
                 else:
                     if timer1 > 4:
-                        cont -= 1
+                        cont = pacotePronto[cont][6]
                         com.sendData(pacotePronto[cont]) 
-                        print("-----------------REENVIO------------------")
+                        print("-----------------REENVIO PACOTE {}------------------".format(cont))
                         timer1 = 0
                         cont += 1
                     if timer2 > 19:
@@ -207,14 +216,6 @@ def main():
                         print("-----------------Timeout--------------------")
                         break
 
-                    elif nR != 0 and header[0] == 6:
-                        pacote, nP = com.getData(header[5])           
-                        eop, nE = com.getData(4)
-                        print("-----------------Pacote com erro---------------")
-                        cont -= 1
-                        com.sendData(pacotePronto[cont]) 
-                        timer1 = 0
-                        timer2 = 0
 
                 print("* "*20)
                 print(cont)

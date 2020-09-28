@@ -108,38 +108,48 @@ def main():
             pacoteFinal = bytes([])
 
             cont = 1
-            
             timer1 = 0 #SET TIMER 1
             timer2 = 0 #SET TIMER 2
             
             contTotal = header[3]
+            listaPacotes = [0]*contTotal
 
             while cont <= contTotal and ocioso == False:
+
+                print("ESPERANDO PACOTE {}".format(cont))
                 timer1 += 0.5
                 timer2 += 0.5
                 header, nH = com.getData(10)
                 
                 
                 if nH != 0 and header[0] == 3: 
-                    if cont == header[4]:
-                        pacote, nP = com.getData(header[5])
-                        eop, nE = com.getData(4)
+                    pacote, nP = com.getData(header[5])
+                    eop, nE = com.getData(4)
+                    print(nP)
+                    if cont == header[4] and nP == header[5]:
                         print("lenPacote {}".format(nP))
                         print("ID do pacote {}".format(header[4]))
                         print("Pacote OK")
-                        pacoteFinal += pacote
-                        resposta = criaPacote(bytes([0]), 1, 4)
+                        listaPacotes[cont-1] = pacote
+                        resposta = criaPacote(bytes([0]), cont, 4)
                         print("***Envia Resposta t4***")
                         com.sendData(resposta)
                         cont += 1
                         timer1 = 0
                     
-                    elif cont != header[4] and nP == 0:
+                    elif cont != header[4]:
                         print("CHEGOU {}".format(header[4]))
-                        resposta = criaPacote(bytes([0]), 1, 6)
+                        resposta = criaPacote(bytes([0]), cont, 6)
                         print("Envia Resposta t6")
                         com.sendData(resposta)
                         cont = header[6]
+                    elif(nP == 0):
+                        cont = header[6]
+                        print("PACOTE CHEGOU VAZIO")
+                        resposta = criaPacote(bytes([0]), cont, 6)
+                        print("Envia Resposta t6")
+                        com.sendData(resposta)
+                    
 
                 else:
                     time.sleep(1)
@@ -149,11 +159,11 @@ def main():
                         print("OCIOSO")
                         print("Envia Resposta t5")
                         com.sendData(resposta)
-                        com.disable()
+                        break
 
                     else:
                         if timer1 > 2:
-                            resposta = criaPacote(bytes([0]), 1, 4)
+                            resposta = criaPacote(bytes([0]), cont, 4)
                             print("Envia Resposta t4 do pacote {}".format(cont))
                             com.sendData(resposta)
                             timer1 = 0
@@ -161,13 +171,14 @@ def main():
 
                 if nH != 0 and header[0] == 5:
                     print("Timeout")
-                    com.disable()
+                    break
             
                     
                 print("* "*20)
-                print(cont)
             
             if cont-1 == contTotal:
+                for i in listaPacotes:
+                    pacoteFinal+=i
                 print("SUCESSO!")
                 print("Len Pacote Final --> {}".format(len(pacoteFinal)))
             else: 
