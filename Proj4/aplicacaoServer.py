@@ -54,7 +54,9 @@ def criaPacote(payload, i, tipo_mensagem):
     return pacote
 
 
-def handshake(com):
+def handshake(com, f):
+    current_time = time.localtime()
+
     global ocioso
    
     header, nH = com.getData(10)
@@ -65,6 +67,7 @@ def handshake(com):
             ocioso = False
             pacote, lenPacote = com.getData(1)
             eop, lenEop= com.getData(4)
+            f.write("{0}/{1}/{2} {3}:{4}:{5} / receb / 1 / {6}\n".format(current_time[2],current_time[1],current_time[0],current_time[3],current_time[4],current_time[5], len(header+pacote+eop)))
             print("-"*30)
             print("{} pacotes a serem resgatados\n".format(header[3]))
         else:
@@ -96,13 +99,18 @@ def main():
         
         print("###Buscando Header###")
         
+        f= open("Server.txt","w+")
+
+        
         #INICIO DO HANDSHAKE 
         while ocioso:
-            header = handshake(com)
+            header = handshake(com, f)
             time.sleep(1)
         if ocioso == False:
             pacoteHandshake = criaPacote(bytes([0]),1,2)
             print("Pacote handshake {}".format(pacoteHandshake))
+            current_time = time.localtime()
+            f.write("{0}/{1}/{2} {3}:{4}:{5} / envio / 2 / {6}\n".format(current_time[2],current_time[1],current_time[0],current_time[3],current_time[4],current_time[5], len(pacoteHandshake)))
             com.sendData(pacoteHandshake)
 
             pacoteFinal = bytes([])
@@ -123,16 +131,24 @@ def main():
                 
                 
                 if nH != 0 and header[0] == 3: 
+                    current_time = time.localtime()
+
                     pacote, nP = com.getData(header[5])
                     eop, nE = com.getData(4)
+
+                    f.write("{0}/{1}/{2} {3}:{4}:{5} / receb / {6} / {7}\n".format(current_time[2],current_time[1],current_time[0],current_time[3],current_time[4],current_time[5], header[0], len(header+pacote+eop)))
+
                     print(nP)
                     if cont == header[4] and nP == header[5]:
                         print("lenPacote {}".format(nP))
                         print("ID do pacote {}".format(header[4]))
                         print("Pacote OK")
                         listaPacotes[cont-1] = pacote
+                        print(cont)
                         resposta = criaPacote(bytes([0]), cont, 4)
                         print("***Envia Resposta t4***")
+                        f.write("{0}/{1}/{2} {3}:{4}:{5} / envio / 4 / {6}\n".format(current_time[2],current_time[1],current_time[0],current_time[3],current_time[4],current_time[5], len(resposta)))
+
                         com.sendData(resposta)
                         cont += 1
                         timer1 = 0
@@ -141,6 +157,7 @@ def main():
                         print("CHEGOU {}".format(header[4]))
                         resposta = criaPacote(bytes([0]), cont, 6)
                         print("Envia Resposta t6")
+                        f.write("{0}/{1}/{2} {3}:{4}:{5} / envio / 6 / {6}\n".format(current_time[2],current_time[1],current_time[0],current_time[3],current_time[4],current_time[5], len(resposta)))
                         com.sendData(resposta)
                         cont = header[6]
                     elif(nP == 0):
@@ -148,6 +165,8 @@ def main():
                         print("PACOTE CHEGOU VAZIO")
                         resposta = criaPacote(bytes([0]), cont, 6)
                         print("Envia Resposta t6")
+                        f.write("{0}/{1}/{2} {3}:{4}:{5} / envio / 6 / {6}\n".format(current_time[2],current_time[1],current_time[0],current_time[3],current_time[4],current_time[5], len(resposta)))
+
                         com.sendData(resposta)
                     
 
@@ -158,6 +177,7 @@ def main():
                         resposta = criaPacote(bytes([0]), 1, 5)
                         print("OCIOSO")
                         print("Envia Resposta t5")
+                        f.write("{0}/{1}/{2} {3}:{4}:{5} / envio / 5 / {6}\n".format(current_time[2],current_time[1],current_time[0],current_time[3],current_time[4],current_time[5], len(resposta)))
                         com.sendData(resposta)
                         break
 
@@ -165,6 +185,7 @@ def main():
                         if timer1 > 2:
                             resposta = criaPacote(bytes([0]), cont, 4)
                             print("Envia Resposta t4 do pacote {}".format(cont))
+                            f.write("{0}/{1}/{2} {3}:{4}:{5} / envio / 4 / {6}\n".format(current_time[2],current_time[1],current_time[0],current_time[3],current_time[4],current_time[5], len(resposta)))
                             com.sendData(resposta)
                             timer1 = 0
                 
@@ -175,7 +196,6 @@ def main():
             
                     
                 print("* "*20)
-            
             if cont-1 == contTotal:
                 for i in listaPacotes:
                     pacoteFinal+=i
@@ -186,7 +206,7 @@ def main():
 
             
 
-
+        f.close()
         # Encerra comunicação
         print("-------------------------")
         print("Comunicação encerrada")
