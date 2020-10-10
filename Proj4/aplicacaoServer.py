@@ -12,6 +12,8 @@
 
 from enlace import *
 import time
+import crcmod
+
 
 
 # voce deverá descomentar e configurar a porta com através da qual ira fazer comunicaçao
@@ -78,6 +80,7 @@ def handshake(com, f):
 def main():
     global ocioso
     try:
+        _CRC_FUNC = crcmod.mkCrcFun(0x11021, initCrc=0, xorOut=0xffff) #CRC
         #declaramos um objeto do tipo enlace com o nome "com". Essa é a camada inferior à aplicação. Observe que um parametro
         #para declarar esse objeto é o nome da porta.
         com = enlace(serialName)
@@ -130,16 +133,23 @@ def main():
                 header, nH = com.getData(10)
                 
                 
+                
+                
                 if nH != 0 and header[0] == 3: 
                     current_time = time.localtime()
 
                     pacote, nP = com.getData(header[5])
                     eop, nE = com.getData(4)
+                    
+                    crc = bytes([header[8]]) + bytes([header[9]])
+                    resp = _CRC_FUNC(pacote)
+                    c = resp.to_bytes(2,'big')
+                    
 
                     f.write("{0}/{1}/{2} {3}:{4}:{5} / receb / {6} / {7}\n".format(current_time[2],current_time[1],current_time[0],current_time[3],current_time[4],current_time[5], header[0], len(header+pacote+eop)))
 
                     print(nP)
-                    if cont == header[4] and nP == header[5]:
+                    if cont == header[4] and nP == header[5] and crc==c:
                         print("lenPacote {}".format(nP))
                         print("ID do pacote {}".format(header[4]))
                         print("Pacote OK")

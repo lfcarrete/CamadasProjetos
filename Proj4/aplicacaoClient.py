@@ -12,6 +12,7 @@
 
 from enlace import *
 import time
+import crcmod
 
 
 # voce deverá descomentar e configurar a porta com através da qual ira fazer comunicaçao
@@ -25,7 +26,7 @@ import time
 serialName = "COM4"                  # Windows(variacao de)
 vivo = False
 
-def criaPacote(payload, i, tipo_mensagem, Handshake, numTotalPacotes):
+def criaPacote(payload, i, tipo_mensagem, Handshake, numTotalPacotes, crc0, crc1):
     pacote = bytes([])
 
     header = [bytes([0])]*10
@@ -43,8 +44,8 @@ def criaPacote(payload, i, tipo_mensagem, Handshake, numTotalPacotes):
         
     header[6] = bytes([i-1]) #Pacote para recomeco quando erro no envio
     header[7] = bytes([i-1]) #Ultimo pacote recebido com sucesso
-    header[8] = bytes([0]) #CRC
-    header[9] = bytes([0]) #CRC
+    header[8] = bytes([crc0]) #CRC
+    header[9] = bytes([crc1]) #CRC
 
 
 
@@ -63,7 +64,7 @@ def criaPacote(payload, i, tipo_mensagem, Handshake, numTotalPacotes):
     
 def estaVivo(com, numTotalPacotes, f):
     current_time = time.localtime()
-    txBuffer = criaPacote(bytes([0]), 1, 1, True, numTotalPacotes) 
+    txBuffer = criaPacote(bytes([0]), 1, 1, True, numTotalPacotes, 0, 0) 
     com.sendData(txBuffer)
     f.write("{0}/{1}/{2} {3}:{4}:{5} / envio / 1 / {6} / 0 / {7}\n".format(current_time[2],current_time[1],current_time[0],current_time[3],current_time[4],current_time[5], len(txBuffer),txBuffer[3]))
 
@@ -115,7 +116,8 @@ def parsePacote(payload):
 
 def main():
     try:
-       
+        _CRC_FUNC = crcmod.mkCrcFun(0x11021, initCrc=0, xorOut=0xffff) #CRC
+
         #declaramos um objeto do tipo enlace com o nome "com". Essa é a camada inferior à aplicação. Observe que um parametro
         #para declarar esse objeto é o nome da porta.
         com = enlace(serialName)
@@ -140,7 +142,10 @@ def main():
 
         numPacote = 1
         for i in parsed:
-            pacotePronto.append(criaPacote(i, numPacote, 3, False, len(parsed))) 
+            resp = _CRC_FUNC(i)
+            c = resp.to_bytes(2,'big')
+
+            pacotePronto.append(criaPacote(i, numPacote, 3, False, len(parsed), c[0], c[1])) 
             numPacote += 1
 
         lenEnvio = len(pacotePronto)
@@ -171,15 +176,16 @@ def main():
             timer2 = 0 #SET TIMER 2
             
             current_time = time.localtime()
-
+            
+            crc = bytes([pacotePronto[cont][8]]) + bytes([pacotePronto[cont][9]])
             com.sendData(pacotePronto[cont])
-            f.write("{0}/{1}/{2} {3}:{4}:{5} / envio / 3 / {6} / {7} / {8}\n".format(current_time[2],current_time[1],current_time[0],current_time[3],current_time[4],current_time[5], len(pacotePronto[cont]), pacotePronto[cont][4], pacotePronto[cont][3]))
+            f.write("{0}/{1}/{2} {3}:{4}:{5} / envio / 3 / {6} / {7} / {8} / {9}\n".format(current_time[2],current_time[1],current_time[0],current_time[3],current_time[4],current_time[5], len(pacotePronto[cont]), pacotePronto[cont][4], pacotePronto[cont][3], crc.hex()))
             print("Pacote ID:{} Enviado".format(pacotePronto[cont][4]))
             test = True 
-            while cont < len(pacotePronto):      
-                if test:
-                    cont = 1
-                    test = False        
+            while cont < len(pacotePronto)-1:      
+                #if test:
+                 #   cont = 1
+                  #  test = False        
                 current_time = time.localtime()
                 header, nR = com.getData(10)  
                 
@@ -195,9 +201,10 @@ def main():
                     if  header[0] == 4:
                         cont += 1
                         print("----------------Pacote chegou OK!-----------------")
+                        
                         com.sendData(pacotePronto[cont])
-
-                        f.write("{0}/{1}/{2} {3}:{4}:{5} / envio / 3 / {6} / {7} / {8}\n".format(current_time[2],current_time[1],current_time[0],current_time[3],current_time[4],current_time[5], len(pacotePronto[cont]), pacotePronto[cont][4], pacotePronto[cont][3]))
+                        crc = bytes([pacotePronto[cont][8]]) + bytes([pacotePronto[cont][9]])
+                        f.write("{0}/{1}/{2} {3}:{4}:{5} / envio / 3 / {6} / {7} / {8} / {9}\n".format(current_time[2],current_time[1],current_time[0],current_time[3],current_time[4],current_time[5], len(pacotePronto[cont]), pacotePronto[cont][4], pacotePronto[cont][3], crc.hex()))
 
 
                         print("Pacote ID:{} Enviado".format(pacotePronto[cont][4]))
@@ -226,7 +233,7 @@ def main():
                         
 
                     if timer2 > 20:
-                        resp = criaPacote(bytes([0]), 1, 5,False, 0)
+                        resp = criaPacote(bytes([0]), 1, 5,False, 0, 0, 0)
                         com.sendData(resp)
                         f.write("{0}/{1}/{2} {3}:{4}:{5} / envio / 5 / {6} \n".format(current_time[2],current_time[1],current_time[0],current_time[3],current_time[4],current_time[5], len(resp)))
                         f.close()
